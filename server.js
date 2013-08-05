@@ -6,7 +6,7 @@ var restify = require('restify'),
     io = require('socket.io').listen(server);
 
 var argv = require('optimist')
-  .usage('node dashboard.js --listen [addr] --port [num] --db [url]')
+  .usage('node server.js --listen [addr] --port [num] --db [url]')
   .default('listen', '127.0.0.1')
   .default('port', '80')
   .default('db', 'http://localhost:5984/stats')
