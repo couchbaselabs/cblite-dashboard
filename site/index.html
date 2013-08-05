@@ -29,7 +29,10 @@
   .bullet .measure.s0 { fill: steelblue; } /* measure */
   .bullet .title { font-size: 14px; font-weight: bold; }
   .bullet .delay { fill: #999; }
-
+  .info { 
+    font: 12px sans-serif;
+    margin-left: 80px;
+  }
 
   </style>
 </head>
@@ -63,7 +66,7 @@ function drawChart(json){
 
   /* new chart is new data index */
   data.push({
-      "title":"ID: "+json.testid,
+      "title":"Delay",
       "delay": "0s",
       "ranges":[1,1,json.est_writes],
       "measures":[0],
@@ -81,6 +84,9 @@ function drawChart(json){
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
       .call(chart);
+
+ var header = d3.select("#charts").insert("p", "#"+json.testid)
+    .text("Round Trip Test: "+json.numClients+" clients, "+json.numGateways+"  gateway, "+json.backend+", read-write "+json.readRatio+"/"+json.writeRatio).attr("class","info")
 
   var title = svg.append("g")
     .style("text-anchor", "end")
@@ -106,30 +112,32 @@ socket.on('stats', function (json) {
     var svg = d3.select("#"+json.testid)
 
     // make sure chart exists
-    if(svg[0][0] == null){
+    if(svg.empty()){
       svg = drawChart(json)
     }
 
-    // update chart
-    svg.datum(function(d) {
-        var delay_ratio = (1 - (json.docs_written/json.est_writes - json.docs_relayed/json.est_writes))
-        var write_ratio = json.docs_written/(json.est_writes_interval*d.counter)
-        if(json.docs_written == Math.floor(json.est_writes)){
-          write_ratio = 1 /* test finished with estimated rates and est_interval was not divisible */
-        }
-        var ratio = delay_ratio * write_ratio
-        d.ranges = [json.docs_relayed, json.docs_written, json.est_writes]
-        d.measures = [json.est_writes * ratio]
-        d.last_relayed = json.docs_relayed
-        d.last_written = json.docs_written
-        d.counter++
-        console.log("R: "+d.ranges+" M: "+d.measures+" ratio: "+ratio)
-        return d
-      }).call(chart.duration(1000));
-
-    // update delay
-    var delay = 'doc' in json ? json.doc.avg/1000 : 0
-    svg.select(".delay").text(delay.toFixed(2)+"s")
+    if('docs_written' in json){
+      // update chart
+      svg.datum(function(d) {
+          var delay_ratio = (1 - (json.docs_written/json.est_writes - json.docs_relayed/json.est_writes))
+          var write_ratio = json.docs_written/(json.est_writes_interval*d.counter)
+          if(json.docs_written == Math.floor(json.est_writes)){
+            write_ratio = 1 /* test finished with estimated rates and est_interval was not divisible */
+          }
+          var ratio = delay_ratio * write_ratio
+          d.ranges = [json.docs_relayed, json.docs_written, json.est_writes]
+          d.measures = [json.est_writes * ratio]
+          d.last_relayed = json.docs_relayed
+          d.last_written = json.docs_written
+          d.counter++
+          console.log("R: "+d.ranges+" M: "+d.measures+" ratio: "+ratio)
+          console.log(json)
+          return d
+        }).call(chart.duration(1000));
+      // update delay
+      var delay = 'doc' in json ? json.doc.avg/1000 : 0
+      svg.select(".delay").text(delay.toFixed(2)+"s")
+    }
 
   }
 
