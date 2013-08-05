@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<head>
+  <script src="http://d3js.org/d3.v3.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/bullet.js"></script>
+  <style>
+
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: auto;
+    padding-top: 40px;
+    position: relative;
+    width: 800px;
+  }
+
+  button {
+    position: absolute;
+    right: 40px;
+    top: 10px;
+  }
+
+  .bullet { font: 10px sans-serif; }
+  .bullet .marker { stroke: #000; stroke-width: 2px; }
+  .bullet .tick line { stroke: #666; stroke-width: .5px; }
+  .bullet .range.s0 { fill: #eee; }   /* est */
+  .bullet .range.s1 { fill: #ad494a; }   /* written */
+  .bullet .range.s2 { fill: #98df8a; }   /* relayed */
+  .bullet .measure.s0 { fill: steelblue; } /* measure */
+  .bullet .title { font-size: 14px; font-weight: bold; }
+  .bullet .delay { fill: #999; }
+
+
+  </style>
+</head>
+<body>
+<h1>Round Trip Delay</h1>
+<div id="charts">
+
+</div>
+</body>
+
+<script>
+
+var socket = io.connect('http://localhost')
+
+var margin = {top: 5, right: 40, bottom: 20, left: 120},
+    width = 800 - margin.left - margin.right,
+    height = 50 - margin.top - margin.bottom;
+
+var chart = d3.bullet()
+  .width(width)
+  .height(height)
+
+var data = []
+
+
+
+
+
+/* prepare a new svg bar for incoming connections */
+function drawChart(json){
+
+  /* new chart is new data index */
+  data.push({
+      "title":"ID: "+json.testid,
+      "delay": "0s",
+      "ranges":[1,1,json.est_writes],
+      "measures":[0],
+      "markers":[0],   // adjust based on loaded data
+      "testid" : json.testid
+    })
+
+  var svg = d3.select("#charts").selectAll("svg").data(data)
+    .enter().append("svg")
+      .attr("class", "bullet")
+      .attr("id", function(d){ return d.testid })
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .call(chart);
+
+  var title = svg.append("g")
+    .style("text-anchor", "end")
+    .attr("transform", "translate(-6," + height / 2 + ")");
+
+  title.append("text")
+      .attr("class", "title")
+      .text(function(d) { return d.title; });
+
+  title.append("text")
+      .attr("class", "delay")
+      .attr("dy", "1em")
+      .text(function(d) { return d.delay; });
+
+  return svg
+}
+
+
+socket.on('stats', function (json) {
+
+  if('testid' in json){
+
+    var svg = d3.select("#"+json.testid)
+
+    // make sure chart exists
+    if(svg[0][0] == null){
+      svg = drawChart(json)
+    }
+
+    // update chart
+    svg.datum(function(d) {
+        var ratio = (1 - (json.docs_written/json.est_writes - json.docs_relayed/json.est_writes))
+        d.ranges = [json.docs_relayed, json.docs_written, json.est_writes]
+        d.measures = [json.est_writes * ratio]
+        d.last_relayed = json.docs_relayed
+        d.last_written = json.docs_written
+        console.log("R: "+d.ranges+" M: "+d.measures+" ratio: "+ratio)
+        return d
+      }).call(chart.duration(1000));
+
+    // update delay
+    var delay = 'doc' in json ? json.doc.avg/1000 : 0
+    svg.select(".delay").text(delay.toFixed(2)+"s")
+
+  }
+
+})
+
+
+</script>

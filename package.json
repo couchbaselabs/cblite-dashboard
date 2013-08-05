@@ -1,0 +1,15 @@
+{
+  "name": "cblite-dashboard",
+  "version": "0.0.0",
+  "description": "dashboard for viewing couchbase-lite performance data",
+  "repository": "https://github.com/couchbaselabs/cblite-dashboard.git",
+  "keywords": [
+    "performance",
+    "Couchbase",
+    "mobile"
+  ],
+  "dependencies" : ["coax", "follow", "socket.io", "restify", "optimist"],
+  "scripts": {},
+  "author": "Couchbase, Inc.",
+  "license": "Apache 2.0"
+}
