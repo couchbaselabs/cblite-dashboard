@@ -3,6 +3,7 @@
 <head>
   <script src="http://d3js.org/d3.v3.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="js/config.js"></script>
   <script src="/js/bullet.js"></script>
   <style>
 
@@ -29,7 +30,7 @@
   .bullet .measure.s0 { fill: steelblue; } /* measure */
   .bullet .title { font-size: 14px; font-weight: bold; }
   .bullet .delay { fill: #999; }
-  .info { 
+  .info {
     font: 12px sans-serif;
     margin-left: 80px;
   }
@@ -45,7 +46,7 @@
 
 <script>
 
-var socket = io.connect('http://localhost')
+var socket = io.connect('http://'+listener) /* imported from config.js */
 
 var margin = {top: 5, right: 40, bottom: 20, left: 120},
     width = 800 - margin.left - margin.right,

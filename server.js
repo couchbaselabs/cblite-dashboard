@@ -75,5 +75,10 @@ server.get('/js/:file', script)
 
 /* start server */
 server.listen(argv.port, argv.listen, function(){
-  console.log("Server started on: http://"+argv.listen+":"+argv.port)
+  var listener = argv.listen+":"+argv.port
+  console.log("Server started on: http://"+listener)
+  fs.writeFile('site/js/config.js', "listener=\""+listener+"\"", function (err) {
+    if (err) throw err;
+  })
+
 })
