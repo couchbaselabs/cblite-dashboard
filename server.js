@@ -6,8 +6,9 @@ var restify = require('restify'),
     io = require('socket.io').listen(server);
 
 var argv = require('optimist')
-  .usage('node server.js --listen [addr] --port [num] --db [url]')
+  .usage('node server.js --listen [addr] --port [num] --source --[url] --db [url]')
   .default('listen', '127.0.0.1')
+  .default('source', 'http://127.0.0.1:8189')
   .default('port', '80')
   .default('db', 'http://localhost:5984/stats')
   .argv;
@@ -76,8 +77,13 @@ server.get('/js/:file', script)
 /* start server */
 server.listen(argv.port, argv.listen, function(){
   var listener = argv.listen+":"+argv.port
+  var source = argv.source
+
   console.log("Server started on: http://"+listener)
-  fs.writeFile('site/js/config.js', "listener=\""+listener+"\"", function (err) {
+  fs.writeFile('site/js/config.js', "listener=\""+listener+"\"\n", function (err) {
+    if (err) throw err;
+  })
+  fs.appendFile('site/js/config.js', "source=\""+source+"\"\n", function (err) {
     if (err) throw err;
   })
 

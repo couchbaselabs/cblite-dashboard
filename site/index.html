@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html ng-app>
 <meta charset="utf-8">
 <head>
   <script src="http://d3js.org/d3.v3.js"></script>
@@ -6,6 +7,7 @@
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
   <script src="js/config.js"></script>
   <script src="/js/bullet.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
   <style>
 
   body {
@@ -39,11 +41,36 @@
     font: 12px sans-serif;
   }
 
+  input { width : 30px }
+  #runner { font-size : 12px }
+  input.gateway { width : 120px }
+  #run { width : 50px;
+        height : 20px;
+        margin-left: 30px;
+        background : #98df8a}
+
   </style>
 </head>
 <body>
 <h1>Round Trip Delay</h1>
+<div>
+  <form id = "runner">
+      <label>#Clients:</label>
+      <input type="text" name="numClients" placeholder="20">
+      <label>GatewayURL:</label>
+      <input type="text" class="gateway" name="gateway" placeholder="">
+      <label>%reads:</label>
+      <input type="text" name="readRatio" value="90">
+      <label>%writes:</label>
+      <input type="text" name="writeRatio" value="10">
+      <label>client requests/sec:</label>
+      <input type="text" name="requestsPerSec" value="1">
+      <label>Runtime:</label>
+      <input type="text" name="runtime" value="300">
+      <input type="submit" id="run" value="RUN!" />
+  </form>
 <div id="charts">
+  <hr id="sep">
 
 </div>
 </body>
@@ -81,18 +108,24 @@ function drawChart(json, range){
     })
 
   var svg = d3.select("#charts").selectAll("svg").data(data)
-    .enter().append("svg")
-      .attr("class", "bullet")
-      .attr("id", function(d){ return d.testid })
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
+    .enter()
+      .append("div")
+        .attr("id", json.testid)
+      .append("svg")
+        .attr("class", "bullet")
+        .attr("id",  json.testid+"_chart")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
       .call(chart);
 
-  var header = d3.select("#charts").insert("p", "#"+json.testid)
-    .text("Info: "+json.numClients+" clients, "+json.numGateways+"  gateway, "+json.backend+", read-write "+json.readRatio+"/"+json.writeRatio).attr("class","info")
-   var ddetails = header .append("ul")
+  var header = d3.select("#"+json.testid).insert("p","svg")
+        .attr("id", json.testid+"header")
+      .html("Info: "+json.numClients+" clients, "+json.readRatio+"/"+json.writeRatio+" RW-Ratio, "+json.requestsPerSec+" client rps, runtime: "+json.runtime)
+        .attr("class","info")
+
+   var ddetails = header.append("ul")
    ddetails.append("li").append("text").attr("class","ddetail")
     .text("round trip: ").append("span").text("0s").attr("id","rtdelay_"+json.testid)
    ddetails.append("li").append("text").attr("class","ddetail")
@@ -113,6 +146,7 @@ function drawChart(json, range){
       .attr("dy", "1em")
       .text(function(d) { return d.delay; })
 
+
   return svg
 
 }
@@ -122,11 +156,14 @@ socket.on('stats', function (json) {
 
   if('testid' in json){
 
-    var svg = d3.select("#"+json.testid)
+    var svg = d3.select("#"+json.testid+"_chart")
 
     // make sure chart exists
     if(svg.empty()){
       svg = drawChart(json, 100)
+
+      // move to top of list
+      $('#'+json.testid).insertAfter($('#sep'))
     }
 
 
@@ -161,9 +198,8 @@ socket.on('stats', function (json) {
     }
 
     // rescale quirk - ticks need to moved inside of the transform
-    var marker = $("#"+json.testid+" .marker")
-    console.log(marker)
-    $("#"+json.testid+" .tick").each(function(){
+    var marker = $("#"+json.testid+"_chart .marker")
+    $("#"+json.testid+"_chart .tick").each(function(){
       $(this).insertAfter(marker)
     })
 
@@ -171,5 +207,31 @@ socket.on('stats', function (json) {
 
 })
 
+  $('#runner').submit(function() {
+
+    jQuery.ajax({
+
+      url: 'http://127.0.0.1:8189/stop/perf'
+
+    }).done(function (response){
+      console.log(response)
+
+      jQuery.ajax({
+          url: source+'/run/perf/readwrite',
+          method: 'POST',
+          data: $('#runner').serialize()
+      }).done(function (response) {
+        console.log(response)
+
+      }).fail(function (e) {
+        console.log("SUBMIT ERROR - OOP!")
+        console.log(e)
+      });
+
+
+    })
+  return false;
+  });
 
 </script>
+</html>
