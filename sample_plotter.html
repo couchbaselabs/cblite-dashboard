@@ -1,0 +1,141 @@
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="Chart.js/Chart.min.js"></script>
+
+<h3>client delay(seconds)</h3>
+<p class="p310">310 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp310">310 clients(push +  pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p700">700 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp700">700 clients(push +  pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p1000">1000 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp1000">1000 clients(push +  pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="fp1000">1000 clients(filtered push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="fpp1000">1000 clients(filtered push + pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p1000_20">1000 clients(push), 200 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<canvas id="perf_client" width="1200" height="600"></canvas>
+<h3>gateway delay(seconds)</h3>
+<p class="p310">310 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp310">310 clients(push + pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p700">700 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp700">700 clients(push +  pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p1000">1000 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp1000">1000 clients(push +  pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="fp1000">1000 clients(filtered push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="fpp1000">1000 clients(filtered push + pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p1000_20">1000 clients(push), 200 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<canvas id="perf_sg" width="1200" height="600"></canvas>
+<h3># gateway docs</h3>
+<p class="p310">310 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp310">310 clients(push + pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p700">700 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp700">700 clients(push +  pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p1000">1000 clients(push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="pp1000">1000 clients(push +  pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="fp1000">1000 clients(filtered push), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="fpp1000">1000 clients(filtered push + pull), 100 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<p class="p1000_20">1000 clients(push), 200 writes/sec, 2 gateways, 4 couchbase-ee</p>
+<canvas id="perf_relayed" width="1200" height="600"></canvas>
+<script>
+
+  var client_data = { labels : null, 
+                      datasets : []}
+  var sg_data = { labels : null,
+                  datasets : []}
+
+  var relayed = { labels : null,
+                  datasets : []}
+
+
+
+  var plot = function(){
+
+        var opts = {datasetFill : false, pointDot : false}
+
+        var ctx = $("#perf_client").get(0).getContext("2d");
+        var myNewChart = new Chart(ctx).Line(client_data, opts );
+
+        ctx = $("#perf_sg").get(0).getContext("2d");
+        myNewChart = new Chart(ctx).Line(sg_data, opts);
+
+        ctx = $("#perf_relayed").get(0).getContext("2d");
+        myNewChart = new Chart(ctx).Line(relayed, opts);
+  };
+
+  function updateData(urls, titlecls, done){
+    var url = urls.shift()
+    var cls = titlecls.shift()
+    if(!url){
+      done({ok : 'ok'}) 
+    }
+
+    $.ajax({
+        dataType: "json",
+        url: url,
+        success: function(data, status, _){
+          data.rows = data.rows.slice(0,200)
+          var tsSubset = data.rows.filter(function(d, i){ return (i%10 == 0) })
+          var ts = tsSubset.map(function(d){ return d.key+"s"} )
+          var clientSubset = data.rows.filter(function(d, i){ return (i%10 == 0) })
+          var client = clientSubset.map(function(d){ return (d.value[1]/1000)})
+          var sgSubset = data.rows.filter(function(d, i){ return (i%10 == 0)})
+          var sg = sgSubset.map(function(d){ return d.value[0]/1000})
+          var drSubset = data.rows.filter(function(d, i){ return (i%10 == 0)})
+          var docRd = drSubset.map(function(d){ return d.value[2]})
+          console.log(docRd)
+
+          if(!client_data.labels){
+            client_data.labels = ts
+          }
+          if(!sg_data.labels){
+            sg_data.labels = ts
+          }
+
+          if(!relayed.labels){
+            relayed.labels = ts
+          }
+
+          var r = Math.floor(Math.random() * 256),
+            g = Math.floor(Math.random() * 256),
+            b = Math.floor(Math.random() * 256)
+          var stroke = "rgba("+r+","+g+","+b+",1)"
+          $(cls).css('color', stroke)
+          client_data.datasets.push({
+                          strokeColor : stroke,
+                          pointColor : "rgba(220,220,220,1)",
+                          pointStrokeColor : "#fff",
+                          data : client 
+                       })
+
+          sg_data.datasets.push({
+                          strokeColor : stroke,
+                          pointColor : "rgba(151,187,205,1)",
+                          pointStrokeColor : "#fff",
+                          data : sg 
+                       })
+
+          relayed.datasets.push({
+                          strokeColor : stroke,
+                          pointColor : "rgba(151,187,205,1)",
+                          pointStrokeColor : "#fff",
+                          data :  docRd 
+                       })
+        updateData(urls, titlecls, done)
+      }
+    })
+  }
+
+  var urls = ["http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/perf1k/_design/perf/_view/perf_762024?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/perf1k/_design/perf/_view/perf_766547?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/perf1k/_design/perf/_view/perf_771232?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/perf1k/_design/perf/_view/perf_773253?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/stats2/_design/perf/_view/1000_10_p?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/perf1k/_design/perf/_view/perf_1086873?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/throughput/_design/perf/_view/1000_10_fp?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/throughput/_design/perf/_view/1000_10_fpp?callback=?",
+              "http://ec2-54-224-59-232.compute-1.amazonaws.com:5984/stats2/_design/perf/_view/1000_20_fp?callback=?"]
+
+  updateData(urls, ['.p310', '.pp310', '.p700', '.pp700', '.p1000', '.pp1000', '.fp1000', '.fpp1000', '.p1000_20'], function(ok){
+    console.log(ok)
+    plot()
+  })
+
+</script>
